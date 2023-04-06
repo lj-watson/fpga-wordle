@@ -1,6 +1,13 @@
 #define SDRAM_BASE            0xC0000000
 #define FPGA_ONCHIP_BASE      0xC8000000
 #define FPGA_CHAR_BASE        0xC9000000
+#define Timer 0xFF202000
+#define TimerStatus ((volatile short*) (Timer))
+#define TimerControl ((volatile short*) (Timer+4))
+#define TimerTimeoutL ((volatile short*) (Timer+8))
+#define TimerTimeoutH ((volatile short*) (Timer+12))
+#define TimerSnapshotL ((volatile short*) (Timer+16))
+#define TimerSnapshotH ((volatile short*) (Timer+20))
 
 /* Cyclone V FPGA devices */
 #define LEDR_BASE             0xFF200000
@@ -44,6 +51,7 @@ volatile int letters[NUM_LETTERS];
 volatile int correct_letters[NUM_LETTERS];
 volatile int letter_received;
 int GET_LETTER_NOW;
+int stop_title = FALSE;
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,6 +78,7 @@ void draw_wordle_box(int xpos, int ypos);
 const int* match_img_array(int letter_input, int status);
 char* pick_random_word(char* word_array[]);
 int convert_to_code(char letter);
+void wait_for_timer(void);
 
 
 // Functions to set up interrupts
@@ -6543,6 +6552,98 @@ int main(void) {
     pixel_buffer_start = *(pixel_ctrl_ptr + 1); // we draw on the back buffer
     clear_screen(); // pixel_buffer_start points to the pixel buffer
 
+    letter_received = 0x0;
+    // Configure the timeout period to maximum
+   *(TimerTimeoutL)=0xFFFF;
+   *(TimerTimeoutH)=0x00FF;
+    *(TimerStatus) = 0x2;
+   // Configure timer to start counting and to always continue
+   *(TimerControl)=6;
+
+    while(letter_received == 0x0) {
+        // Draw white letters
+        draw_img(40, 70, white_W, BOX_LEN, BOX_LEN);
+        wait_for_timer();
+        if(stop_title == TRUE) break;
+        draw_img(80, 70, white_O, BOX_LEN, BOX_LEN);
+        wait_for_timer();
+        if(stop_title == TRUE) break;
+        draw_img(120, 70, white_R, BOX_LEN, BOX_LEN);
+        wait_for_timer();
+        if(stop_title == TRUE) break;
+        draw_img(160, 70, white_D, BOX_LEN, BOX_LEN);
+        wait_for_timer();
+        if(stop_title == TRUE) break;
+        draw_img(200, 70, white_L, BOX_LEN, BOX_LEN);
+        wait_for_timer();
+        if(stop_title == TRUE) break;
+        draw_img(240, 70, white_E, BOX_LEN, BOX_LEN);
+        wait_for_timer();
+        if(stop_title == TRUE) break;
+        // Draw grey letters
+        draw_img(40, 70, gray_W, BOX_LEN, BOX_LEN);
+        wait_for_timer();
+        if(stop_title == TRUE) break;
+        draw_img(80, 70, gray_O, BOX_LEN, BOX_LEN);
+        wait_for_timer();
+        if(stop_title == TRUE) break;
+        draw_img(120, 70, gray_R, BOX_LEN, BOX_LEN);
+        wait_for_timer();
+        if(stop_title == TRUE) break;
+        draw_img(160, 70, gray_D, BOX_LEN, BOX_LEN);
+        wait_for_timer();
+        if(stop_title == TRUE) break;
+        draw_img(200, 70, gray_L, BOX_LEN, BOX_LEN);
+        wait_for_timer();
+        if(stop_title == TRUE) break;
+        draw_img(240, 70, gray_E, BOX_LEN, BOX_LEN);
+        wait_for_timer();
+        if(stop_title == TRUE) break;
+        // Draw yellow letters
+        draw_img(40, 70, yellow_W, BOX_LEN, BOX_LEN);
+        wait_for_timer();
+        if(stop_title == TRUE) break;
+        draw_img(80, 70, yellow_O, BOX_LEN, BOX_LEN);
+        wait_for_timer();
+        if(stop_title == TRUE) break;
+        draw_img(120, 70, yellow_R, BOX_LEN, BOX_LEN);
+        wait_for_timer();
+        if(stop_title == TRUE) break;
+        draw_img(160, 70, yellow_D, BOX_LEN, BOX_LEN);
+        wait_for_timer();
+        if(stop_title == TRUE) break;
+        draw_img(200, 70, yellow_L, BOX_LEN, BOX_LEN);
+        wait_for_timer();
+        if(stop_title == TRUE) break;
+        draw_img(240, 70, yellow_E, BOX_LEN, BOX_LEN);
+        wait_for_timer();
+        if(stop_title == TRUE) break;
+        // Draw green letters
+        draw_img(40, 70, green_W, BOX_LEN, BOX_LEN);
+        wait_for_timer();
+        if(stop_title == TRUE) break;
+        draw_img(80, 70, green_O, BOX_LEN, BOX_LEN);
+        wait_for_timer();
+        if(stop_title == TRUE) break;
+        draw_img(120, 70, green_R, BOX_LEN, BOX_LEN);
+        wait_for_timer();
+        if(stop_title == TRUE) break;
+        draw_img(160, 70, green_D, BOX_LEN, BOX_LEN);
+        wait_for_timer();
+        if(stop_title == TRUE) break;
+        draw_img(200, 70, green_L, BOX_LEN, BOX_LEN);
+        wait_for_timer();
+        if(stop_title == TRUE) break;
+        draw_img(240, 70, green_E, BOX_LEN, BOX_LEN);
+        wait_for_timer();
+        if(stop_title == TRUE) break;
+    }
+
+    // Stop timer
+    *(TimerControl ) = 8;
+    // Reset timer timeout status
+    *(TimerStatus) = 0x2;
+
     // Loop to restart the game
     while(1) {
 
@@ -6690,7 +6791,7 @@ int main(void) {
 
         // If user presses any key restart the game
         letter_received = 0x0;
-        printf("\n");
+        printf("\n\n");
         while(letter_received == 0x0);
 
     }
@@ -7366,4 +7467,15 @@ int convert_to_code(char letter) {
     }
 
     return char_code;
+}
+
+void wait_for_timer(void) {
+    stop_title = FALSE;
+    while(*(TimerStatus) == 2) {
+        if(letter_received != 0x0) {
+            stop_title = TRUE;
+            return;
+        }
+    }
+    *(TimerStatus) = 0x2;
 }
