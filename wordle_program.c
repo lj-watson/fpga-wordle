@@ -5682,7 +5682,7 @@ int convert_to_code(char letter) {
             char_code = 0x15;
         break;
         case 'r':
-            char_code = 0x2B;
+            char_code = 0x2D;
         break;
         case 's':
             char_code = 0x1B;
