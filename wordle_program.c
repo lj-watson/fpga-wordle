@@ -6522,8 +6522,34 @@ char* wordle_words_easy[2309] = {
 // Main program
 int main(void) {
 
+    // ENABLE KEYBOARD INTERRUPTS
+
+    disable_A9_interrupts(); // disable interrupts in the A9 processor
+    set_A9_IRQ_stack(); // initialize the stack pointer for IRQ mode
+    config_GIC(); // configure the general interrupt controller
+    config_PS2(); // configure PS/2 to generate interrupts
+    enable_A9_interrupts(); // enable interrupts in the A9 processor
+
+    // ENABLE DRAWING
+
+    volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
+
+    wait_for_vsync();
+    /* initialize a pointer to the pixel buffer, used by drawing functions */
+    pixel_buffer_start = *pixel_ctrl_ptr;
+    clear_screen(); // pixel_buffer_start points to the pixel buffer
+    /* set back pixel buffer to start of SDRAM memory */
+    *(pixel_ctrl_ptr + 1) = 0xC0000000;
+    pixel_buffer_start = *(pixel_ctrl_ptr + 1); // we draw on the back buffer
+    clear_screen(); // pixel_buffer_start points to the pixel buffer
+
     // Loop to restart the game
     while(1) {
+
+        // Clear the screen
+        clear_screen();
+        // Draw the grid
+        draw_grid();
 
         GET_LETTER_NOW = 0;
         int num_letters_correct = 0;
@@ -6561,28 +6587,6 @@ int main(void) {
         for(int current_letter = 0 ; current_letter < NUM_LETTERS; current_letter++) {
             letter_status[current_letter] = WRONG_LETTER;
         }
-
-        // ENABLE KEYBOARD INTERRUPTS
-
-        disable_A9_interrupts(); // disable interrupts in the A9 processor
-        set_A9_IRQ_stack(); // initialize the stack pointer for IRQ mode
-        config_GIC(); // configure the general interrupt controller
-        config_PS2(); // configure PS/2 to generate interrupts
-        enable_A9_interrupts(); // enable interrupts in the A9 processor
-
-        volatile int * pixel_ctrl_ptr = (int *)0xFF203020;
-
-        wait_for_vsync();
-        /* initialize a pointer to the pixel buffer, used by drawing functions */
-        pixel_buffer_start = *pixel_ctrl_ptr;
-        clear_screen(); // pixel_buffer_start points to the pixel buffer
-        /* set back pixel buffer to start of SDRAM memory */
-        *(pixel_ctrl_ptr + 1) = 0xC0000000;
-        pixel_buffer_start = *(pixel_ctrl_ptr + 1); // we draw on the back buffer
-        clear_screen(); // pixel_buffer_start points to the pixel buffer
-
-        // Draw the grid
-        draw_grid();
 
         // Initial values of X and Y (0,0 on Wordle grid)
         int curr_y = 17;
@@ -6667,12 +6671,12 @@ int main(void) {
                 // Change the letter if the input is a letter and we havent reached the end
                 else if(check_letter_valid(letter_received) == FALSE) continue;
 
-            else {
-                letters[current_letter] = letter_received;
-                draw_img(letter_x_pos[current_letter], curr_y, match_img_array(letters[current_letter], UNCHECKED_LETTER), BOX_LEN, BOX_LEN);
-                // Iterate current letter
-                current_letter++;
-            }   
+                else if(letters[NUM_LETTERS - 1] == 0x0){
+                    letters[current_letter] = letter_received;
+                    draw_img(letter_x_pos[current_letter], curr_y, match_img_array(letters[current_letter], UNCHECKED_LETTER), BOX_LEN, BOX_LEN);
+                    // Iterate current letter
+                    current_letter++;
+                }
 
                 // Set letter received back to 0
                 letter_received = 0x0;
@@ -6686,6 +6690,7 @@ int main(void) {
 
         // If user presses any key restart the game
         letter_received = 0x0;
+        printf("\n");
         while(letter_received == 0x0);
 
     }
