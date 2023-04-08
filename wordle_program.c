@@ -1,105 +1,3 @@
-#define SDRAM_BASE            0xC0000000
-#define FPGA_ONCHIP_BASE      0xC8000000
-#define FPGA_CHAR_BASE        0xC9000000
-#define Timer 0xFF202000
-#define TimerStatus ((volatile short*) (Timer))
-#define TimerControl ((volatile short*) (Timer+4))
-#define TimerTimeoutL ((volatile short*) (Timer+8))
-#define TimerTimeoutH ((volatile short*) (Timer+12))
-#define TimerSnapshotL ((volatile short*) (Timer+16))
-#define TimerSnapshotH ((volatile short*) (Timer+20))
-
-/* Cyclone V FPGA devices */
-#define LEDR_BASE             0xFF200000
-#define HEX3_HEX0_BASE        0xFF200020
-#define HEX5_HEX4_BASE        0xFF200030
-#define SW_BASE               0xFF200040
-#define KEY_BASE              0xFF200050
-#define TIMER_BASE            0xFF202000
-// Controller 1 for keyboard
-#define PS2_BASE              0xFF200100
-// DMA Controller front buffer address
-#define PIXEL_BUF_CTRL_BASE   0xFF203020
-#define CHAR_BUF_CTRL_BASE    0xFF203030
-
-/* Screen size. */
-#define RESOLUTION_X 320
-#define RESOLUTION_Y 240
-
-/* Constants */
-#define FALSE 0
-#define TRUE 1
-#define ABS(x) (((x) > 0) ? (x) : -(x))
-#define BOX_LEN 30
-#define NUM_LETTERS 5
-#define UNCHECKED_LETTER 3
-#define CORRECT_LETTER_RIGHT_SPOT 2
-#define CORRECT_LETTER_WRONG_SPOT 1
-#define WRONG_LETTER 0
-#define SIZE_OF_WORDLE_WORDS_EASY 2147
-
-#define BLACK 0x0
-#define WHITE 0xFFFF
-#define RED 0xF800
-#define GREEN 0x07E0
-#define GREY 0xC618
-#define ORANGE 0xFC00
-
-// global variables
-volatile int pixel_buffer_start;
-volatile int letters[NUM_LETTERS];
-char entered_string[NUM_LETTERS + 1];
-volatile int correct_letters[NUM_LETTERS];
-volatile int letter_received;
-int GET_LETTER_NOW;
-int stop_title = FALSE;
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <time.h>
-#include <math.h>
-#include <string.h>
-
-// Functions to draw
-void clear_screen();
-// Wait for vsync
-void wait_for_vsync();
-// Plot a singular pixel
-void plot_pixel(int x, int y, short int line_color);
-// Draw an image from the internet
-void draw_img(int x0, int y0, const int byteArr[], int height, int width);
-// Swap the values of two integers
-void swap(int* a, int* b);
-// Draw a line from x0, y0 to x1, y1
-void draw_line(int x0, int y0, int x1, int y1, short int color);
-// Draw the wordle grid
-void draw_grid();
-// Draw a box filled with the specified color
-void draw_box(short int color, int xpos, int ypos);
-int check_letter_valid(int letter_input);
-// Draw each empty box in the wordle grid
-void draw_wordle_box(int xpos, int ypos);
-const int* match_img_array(int letter_input, int status);
-char* pick_random_word(char* word_array[]);
-// Convert a char to its keyboard code (hex)
-int convert_to_code(char letter);
-// Convert a keyboard code (hex) to its char
-char convert_to_char(int code);
-void wait_for_timer(void);
-// Binary search algorithm
-int legal_word(char* word_list[], int low, int high, char* word);
-
-
-// Functions to set up interrupts
-void disable_A9_interrupts(void);
-void set_A9_IRQ_stack(void);
-void config_GIC(void);
-void enable_A9_interrupts(void);
-void config_interrupt(int, int);
-void config_PS2(void);
-void key_received(void);
-
 /******** WORDLE LETTER BYTE ARRAYS *********/
 
 const int green_A[900] = {
@@ -7877,6 +7775,110 @@ const int versus_battle[8000] = {
 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff
 };
 
+#define SDRAM_BASE            0xC0000000
+#define FPGA_ONCHIP_BASE      0xC8000000
+#define FPGA_CHAR_BASE        0xC9000000
+#define Timer 0xFF202000
+#define TimerStatus ((volatile short*) (Timer))
+#define TimerControl ((volatile short*) (Timer+4))
+#define TimerTimeoutL ((volatile short*) (Timer+8))
+#define TimerTimeoutH ((volatile short*) (Timer+12))
+#define TimerSnapshotL ((volatile short*) (Timer+16))
+#define TimerSnapshotH ((volatile short*) (Timer+20))
+
+/* Cyclone V FPGA devices */
+#define LEDR_BASE             0xFF200000
+#define HEX3_HEX0_BASE        0xFF200020
+#define HEX5_HEX4_BASE        0xFF200030
+#define SW_BASE               0xFF200040
+#define KEY_BASE              0xFF200050
+#define TIMER_BASE            0xFF202000
+// Controller 1 for keyboard
+#define PS2_BASE              0xFF200100
+// DMA Controller front buffer address
+#define PIXEL_BUF_CTRL_BASE   0xFF203020
+#define CHAR_BUF_CTRL_BASE    0xFF203030
+
+/* Screen size. */
+#define RESOLUTION_X 320
+#define RESOLUTION_Y 240
+
+/* Constants */
+#define FALSE 0
+#define TRUE 1
+#define ABS(x) (((x) > 0) ? (x) : -(x))
+#define BOX_LEN 30
+#define NUM_LETTERS 5
+#define UNCHECKED_LETTER 3
+#define CORRECT_LETTER_RIGHT_SPOT 2
+#define CORRECT_LETTER_WRONG_SPOT 1
+#define WRONG_LETTER 0
+#define SIZE_OF_WORDLE_WORDS_EASY 2147
+
+#define BLACK 0x0
+#define WHITE 0xFFFF
+#define RED 0xF800
+#define GREEN 0x07E0
+#define GREY 0xC618
+#define ORANGE 0xFC00
+
+// global variables
+volatile int pixel_buffer_start;
+volatile int letters[NUM_LETTERS];
+char entered_string[NUM_LETTERS + 1];
+volatile int correct_letters[NUM_LETTERS];
+volatile int letter_received;
+int GET_LETTER_NOW;
+int stop_title = FALSE;
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <time.h>
+#include <math.h>
+#include <string.h>
+
+// Functions to draw
+void clear_screen();
+// Wait for vsync
+void wait_for_vsync();
+// Plot a singular pixel
+void plot_pixel(int x, int y, short int line_color);
+// Draw an image from the internet
+void draw_img(int x0, int y0, const int byteArr[], int height, int width);
+// Swap the values of two integers
+void swap(int* a, int* b);
+// Draw a line from x0, y0 to x1, y1
+void draw_line(int x0, int y0, int x1, int y1, short int color);
+// Draw the wordle grid
+void draw_grid();
+// Draw a box filled with the specified color
+void draw_box(short int color, int xpos, int ypos);
+int check_letter_valid(int letter_input);
+// Draw each empty box in the wordle grid
+void draw_wordle_box(int xpos, int ypos);
+const int* match_img_array(int letter_input, int status);
+char* pick_random_word(char* word_array[]);
+// Convert a char to its keyboard code (hex)
+int convert_to_code(char letter);
+// Convert a keyboard code (hex) to its char
+char convert_to_char(int code);
+void wait_for_timer(void);
+void wait_for_timer_no_interrupt(void);
+// Binary search algorithm
+int legal_word(char* word_list[], int low, int high, char* word);
+
+
+// Functions to set up interrupts
+void disable_A9_interrupts(void);
+void set_A9_IRQ_stack(void);
+void config_GIC(void);
+void enable_A9_interrupts(void);
+void config_interrupt(int, int);
+void config_PS2(void);
+void key_received(void);
+int code_to_num(int code);
+
 // Main program
 int main(void) {
 
@@ -7902,12 +7904,12 @@ int main(void) {
     clear_screen(); // pixel_buffer_start points to the pixel buffer
 
     letter_received = 0x0;
-    // Configure the timeout period to maximum
-   *(TimerTimeoutL)=0xFFFF;
-   *(TimerTimeoutH)=0x00FF;
+    // Configure the timeout period
+    *(TimerTimeoutL)=0xFFFF;
+    *(TimerTimeoutH)=0x00FF;
     *(TimerStatus) = 0x2;
-   // Configure timer to start counting and to always continue
-   *(TimerControl)=6;
+    // Configure timer to start counting and to always continue
+    *(TimerControl)=6;
 
     while(letter_received == 0x0) {
         draw_img(30, 130, single_player, 80, 100);
@@ -8004,8 +8006,8 @@ int main(void) {
         draw_grid();
 
         GET_LETTER_NOW = 0;
-        int num_letters_correct = 0;
         int num_guesses = 0;
+        int num_times_letter_appears[26] = {0};
 
         // Initialize all letters to zero
         for(int current_letter = 0 ; current_letter < NUM_LETTERS; current_letter++) {
@@ -8021,6 +8023,11 @@ int main(void) {
             printf("Word is %c\n", *correct_word);
             i += 1;
             correct_word += 1;
+        }
+
+        // Count number of times letters appear in the word
+        for(int current_letter = 0 ; current_letter < NUM_LETTERS; current_letter++) {
+            num_times_letter_appears[code_to_num(correct_letters[current_letter])]++;
         }
 
         // Set letter recieved to 0
@@ -8077,31 +8084,51 @@ int main(void) {
                     }
                     entered_string[NUM_LETTERS] = '\0';
 
-                    // Search for the string in the word bank. If not in word bank, continue
+                    //Search for the string in the word bank. If not in word bank, continue
                     if (legal_word(full_word_bank, 0, 12477, entered_string) == -1) {
                         continue;
                     }
 
-                    // update number of guesses
+                    // Initialize number of correct letters found
+                    int num_letters_correct = 0;
+
+                    // Update number of guesses
                     num_guesses++;
 
-                    // check each letter and update its status      
+                    // Update number of times each letter has been inputted
+                    int num_times_letter_inputted[26] = {0};
+                    // Copy the number of times each letter appears
+                    int num_times_letter_appears_temp[26] = {0};
+                    for(int current_letter = 0 ; current_letter < 26; current_letter++) {
+                        num_times_letter_appears_temp[current_letter] = num_times_letter_appears[current_letter];
+                    }
+
+                    // Check for correct letters first, needed for checking duplicate entries  
                     for(int curr_letter = 0; curr_letter < NUM_LETTERS; curr_letter++) {
                         int check_this_letter = letters[curr_letter];
+                        int num_in_alphabet = code_to_num(check_this_letter);
                         for(int curr_letter_compare = 0; curr_letter_compare < NUM_LETTERS; curr_letter_compare++) {
-                            if(check_this_letter == correct_letters[curr_letter_compare]) {
-                                if(curr_letter == curr_letter_compare) {
-                                    letter_status[curr_letter] = CORRECT_LETTER_RIGHT_SPOT;
-                                    break;
-                                }
-                                else {
-                                    letter_status[curr_letter] = CORRECT_LETTER_WRONG_SPOT;
-                                }
+                            if(check_this_letter == correct_letters[curr_letter_compare] && curr_letter == curr_letter_compare) {
+                                num_times_letter_appears_temp[num_in_alphabet]--;
+                                letter_status[curr_letter] = CORRECT_LETTER_RIGHT_SPOT;
+                                break;
                             }
                         }
                     }
 
-                    // now we have the letter status, draw boxes based on each letter's status           
+                    // Check if letter is correct but in the wrong spot     
+                    for(int curr_letter = 0; curr_letter < NUM_LETTERS; curr_letter++) {
+                        int check_this_letter = letters[curr_letter];
+                        int num_in_alphabet = code_to_num(check_this_letter);
+                        if(num_times_letter_appears_temp[num_in_alphabet] > 0 && letter_status[curr_letter] != CORRECT_LETTER_RIGHT_SPOT) {
+                            num_times_letter_inputted[num_in_alphabet]++;
+                            if(num_times_letter_inputted[num_in_alphabet] <= num_times_letter_appears_temp[num_in_alphabet]) { 
+                                letter_status[curr_letter] = CORRECT_LETTER_WRONG_SPOT;
+                            }
+                        }
+                    }
+
+                    // Now we have the letter status, draw boxes based on each letter's status 
                     for(int curr_letter = 0; curr_letter < NUM_LETTERS; curr_letter++) {
                         if(letter_status[curr_letter] == CORRECT_LETTER_RIGHT_SPOT) {
                             draw_img(letter_x_pos[curr_letter], curr_y, match_img_array(letters[curr_letter], CORRECT_LETTER_RIGHT_SPOT), BOX_LEN, BOX_LEN);
@@ -8111,19 +8138,26 @@ int main(void) {
                             draw_img(letter_x_pos[curr_letter], curr_y, match_img_array(letters[curr_letter], CORRECT_LETTER_WRONG_SPOT), BOX_LEN, BOX_LEN);
                         }
                         else draw_img(letter_x_pos[curr_letter], curr_y, match_img_array(letters[curr_letter], WRONG_LETTER), BOX_LEN, BOX_LEN);
+                        // Configure the timeout period
+                        *(TimerTimeoutL)=0xFFFF;
+                        *(TimerTimeoutH)=0x01FF; 
+                        *(TimerStatus) = 0x2;
+                        // Configure timer to start counting and to always continue
+                        *(TimerControl) = 6;
+                        wait_for_timer_no_interrupt();
+                        // Stop timer
+                        *(TimerControl) = 8;
                     }
-                    // end the game if correct word found
+
+                    // End the round if the correct word is found
                     if(num_letters_correct == 5) {
                         draw_img(250, 90, restart_message, 70, 70);
                         draw_img(0, 90, restart_message, 70, 70);
                         break;
                     }
-                    // if not reset correct letter
-                    else num_letters_correct = 0;
-                    // end the game if all guesses used
+
+                    // End the game if all guesses used
                     if(num_guesses == 6) {
-                        draw_img(250, 90, restart_message, 70, 70);
-                        draw_img(0, 90, restart_message, 70, 70);
                         break;
                     }
                     // Reset letters
@@ -8157,7 +8191,8 @@ int main(void) {
 
         // Game is over, show option to restart game
 
-        // ADD IMAGE HERE
+        draw_img(250, 90, restart_message, 70, 70);
+        draw_img(0, 90, restart_message, 70, 70);
 
         // If user presses any key restart the game
         letter_received = 0x0;
@@ -8166,6 +8201,36 @@ int main(void) {
 
     }
 
+}
+
+int code_to_num(int code) {
+    if(code == 0x1C) return 0;
+    if(code == 0x32) return 1;
+    if(code == 0x21) return 2;
+    if(code == 0x23) return 3;
+    if(code == 0x24) return 4;
+    if(code == 0x2B) return 5;
+    if(code == 0x34) return 6;
+    if(code == 0x33) return 7;
+    if(code == 0x43) return 8;
+    if(code == 0x3B) return 9;
+    if(code == 0x42) return 10;
+    if(code == 0x4B) return 11;
+    if(code == 0x3A) return 12;
+    if(code == 0x31) return 13;
+    if(code == 0x44) return 14;
+    if(code == 0x4D) return 15;
+    if(code == 0x15) return 16;
+    if(code == 0x2D) return 17;
+    if(code == 0x1B) return 18;
+    if(code == 0x2C) return 19;
+    if(code == 0x3C) return 20;
+    if(code == 0x2A) return 21;
+    if(code == 0x1D) return 22;
+    if(code == 0x22) return 23;
+    if(code == 0x35) return 24;
+    if(code == 0x1A) return 25;
+    else return 0;
 }
 
 const int* match_img_array(int letter_input, int status) {
@@ -8938,6 +9003,11 @@ void wait_for_timer(void) {
             return;
         }
     }
+    *(TimerStatus) = 0x2;
+}
+
+void wait_for_timer_no_interrupt(void) {
+    while(*(TimerStatus) == 2);
     *(TimerStatus) = 0x2;
 }
 
