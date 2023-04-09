@@ -7814,6 +7814,10 @@ const int versus_battle[8000] = {
 #define CORRECT_LETTER_WRONG_SPOT 1
 #define WRONG_LETTER 0
 #define SIZE_OF_WORDLE_WORDS_EASY 2147
+#define SINGLE_PLAYER_MODE 0
+#define MULTI_PLAYER_MODE 1
+#define PLAYER_1_TURN 0
+#define PLAYER_2_TURN 1
 
 #define BLACK 0x0
 #define WHITE 0xFFFF
@@ -7828,8 +7832,9 @@ volatile int letters[NUM_LETTERS];
 char entered_string[NUM_LETTERS + 1];
 volatile int correct_letters[NUM_LETTERS];
 volatile int letter_received;
-int GET_LETTER_NOW;
+int GET_LETTER_NOW = FALSE;
 int stop_title = FALSE;
+int choose_mode;
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -7903,301 +7908,579 @@ int main(void) {
     pixel_buffer_start = *(pixel_ctrl_ptr + 1); // we draw on the back buffer
     clear_screen(); // pixel_buffer_start points to the pixel buffer
 
-    letter_received = 0x0;
-    // Configure the timeout period
-    *(TimerTimeoutL)=0xFFFF;
-    *(TimerTimeoutH)=0x00FF;
-    *(TimerStatus) = 0x2;
-    // Configure timer to start counting and to always continue
-    *(TimerControl)=6;
-
-    while(letter_received == 0x0) {
-        draw_img(30, 130, single_player, 80, 100);
-        draw_img(180, 130, versus_battle, 80, 100);
-        // Draw white letters
-        draw_img(40, 60, white_W, BOX_LEN, BOX_LEN);
-        wait_for_timer();
-        if(stop_title == TRUE) break;
-        draw_img(80, 60, white_O, BOX_LEN, BOX_LEN);
-        wait_for_timer();
-        if(stop_title == TRUE) break;
-        draw_img(120, 60, white_R, BOX_LEN, BOX_LEN);
-        wait_for_timer();
-        if(stop_title == TRUE) break;
-        draw_img(160, 60, white_D, BOX_LEN, BOX_LEN);
-        wait_for_timer();
-        if(stop_title == TRUE) break;
-        draw_img(200, 60, white_L, BOX_LEN, BOX_LEN);
-        wait_for_timer();
-        if(stop_title == TRUE) break;
-        draw_img(240, 60, white_E, BOX_LEN, BOX_LEN);
-        wait_for_timer();
-        if(stop_title == TRUE) break;
-        // Draw grey letters
-        draw_img(40, 60, gray_W, BOX_LEN, BOX_LEN);
-        wait_for_timer();
-        if(stop_title == TRUE) break;
-        draw_img(80, 60, gray_O, BOX_LEN, BOX_LEN);
-        wait_for_timer();
-        if(stop_title == TRUE) break;
-        draw_img(120, 60, gray_R, BOX_LEN, BOX_LEN);
-        wait_for_timer();
-        if(stop_title == TRUE) break;
-        draw_img(160, 60, gray_D, BOX_LEN, BOX_LEN);
-        wait_for_timer();
-        if(stop_title == TRUE) break;
-        draw_img(200, 60, gray_L, BOX_LEN, BOX_LEN);
-        wait_for_timer();
-        if(stop_title == TRUE) break;
-        draw_img(240, 60, gray_E, BOX_LEN, BOX_LEN);
-        wait_for_timer();
-        if(stop_title == TRUE) break;
-        // Draw yellow letters
-        draw_img(40, 60, yellow_W, BOX_LEN, BOX_LEN);
-        wait_for_timer();
-        if(stop_title == TRUE) break;
-        draw_img(80, 60, yellow_O, BOX_LEN, BOX_LEN);
-        wait_for_timer();
-        if(stop_title == TRUE) break;
-        draw_img(120, 60, yellow_R, BOX_LEN, BOX_LEN);
-        wait_for_timer();
-        if(stop_title == TRUE) break;
-        draw_img(160, 60, yellow_D, BOX_LEN, BOX_LEN);
-        wait_for_timer();
-        if(stop_title == TRUE) break;
-        draw_img(200, 60, yellow_L, BOX_LEN, BOX_LEN);
-        wait_for_timer();
-        if(stop_title == TRUE) break;
-        draw_img(240, 60, yellow_E, BOX_LEN, BOX_LEN);
-        wait_for_timer();
-        if(stop_title == TRUE) break;
-        // Draw green letters
-        draw_img(40, 60, green_W, BOX_LEN, BOX_LEN);
-        wait_for_timer();
-        if(stop_title == TRUE) break;
-        draw_img(80, 60, green_O, BOX_LEN, BOX_LEN);
-        wait_for_timer();
-        if(stop_title == TRUE) break;
-        draw_img(120, 60, green_R, BOX_LEN, BOX_LEN);
-        wait_for_timer();
-        if(stop_title == TRUE) break;
-        draw_img(160, 60, green_D, BOX_LEN, BOX_LEN);
-        wait_for_timer();
-        if(stop_title == TRUE) break;
-        draw_img(200, 60, green_L, BOX_LEN, BOX_LEN);
-        wait_for_timer();
-        if(stop_title == TRUE) break;
-        draw_img(240, 60, green_E, BOX_LEN, BOX_LEN);
-        wait_for_timer();
-        if(stop_title == TRUE) break;
-    }
-
-    // Stop timer
-    *(TimerControl ) = 8;
-    // Reset timer timeout status
-    *(TimerStatus) = 0x2;
-
-    // Loop to restart the game
+    // OVERALL PROGRAM LOOP
     while(1) {
 
-        // Clear the screen
         clear_screen();
-        // Draw the grid
-        draw_grid();
 
-        GET_LETTER_NOW = 0;
-        int num_guesses = 0;
-        int num_times_letter_appears[26] = {0};
+        // Main title screen
 
-        // Initialize all letters to zero
-        for(int current_letter = 0 ; current_letter < NUM_LETTERS; current_letter++) {
-            letters[current_letter] = 0x0;
-        }
+        // Configure the timeout period
+        *(TimerTimeoutL)=0xFFFF;
+        *(TimerTimeoutH)=0x00FF;
+        *(TimerStatus) = 0x2;
+        // Configure timer to start counting and to always continue
+        *(TimerControl)=6;
 
-        // Initialize correct letters
-        char* correct_word = pick_random_word(wordle_words_easy);
-
-        int i = 0;
-        while (*correct_word != '\0') {
-            correct_letters[i] = convert_to_code(*correct_word);
-            printf("Word is %c\n", *correct_word);
-            i += 1;
-            correct_word += 1;
-        }
-
-        // Count number of times letters appear in the word
-        for(int current_letter = 0 ; current_letter < NUM_LETTERS; current_letter++) {
-            num_times_letter_appears[code_to_num(correct_letters[current_letter])]++;
-        }
-
-        // Set letter recieved to 0
         letter_received = 0x0;
+        choose_mode = -1;
 
-        // Initialize X positions for each letter
-        int letter_x_pos[NUM_LETTERS];
-        int initial_x_pos = 75;
-        for(int current_letter = 0; current_letter < NUM_LETTERS; current_letter++) {
-            letter_x_pos[current_letter] = initial_x_pos;
-            initial_x_pos += BOX_LEN + 5;
+        draw_img(30, 130, single_player, 80, 100);
+        draw_img(180, 130, versus_battle, 80, 100);
+
+        while(letter_received != 0x16 || letter_received != 0x1E) {
+            // Draw white letters
+            draw_img(40, 60, white_W, BOX_LEN, BOX_LEN);
+            wait_for_timer();
+            if(stop_title == TRUE) break;
+            draw_img(80, 60, white_O, BOX_LEN, BOX_LEN);
+            wait_for_timer();
+            if(stop_title == TRUE) break;
+            draw_img(120, 60, white_R, BOX_LEN, BOX_LEN);
+            wait_for_timer();
+            if(stop_title == TRUE) break;
+            draw_img(160, 60, white_D, BOX_LEN, BOX_LEN);
+            wait_for_timer();
+            if(stop_title == TRUE) break;
+            draw_img(200, 60, white_L, BOX_LEN, BOX_LEN);
+            wait_for_timer();
+            if(stop_title == TRUE) break;
+            draw_img(240, 60, white_E, BOX_LEN, BOX_LEN);
+            wait_for_timer();
+            if(stop_title == TRUE) break;
+            // Draw grey letters
+            draw_img(40, 60, gray_W, BOX_LEN, BOX_LEN);
+            wait_for_timer();
+            if(stop_title == TRUE) break;
+            draw_img(80, 60, gray_O, BOX_LEN, BOX_LEN);
+            wait_for_timer();
+            if(stop_title == TRUE) break;
+            draw_img(120, 60, gray_R, BOX_LEN, BOX_LEN);
+            wait_for_timer();
+            if(stop_title == TRUE) break;
+            draw_img(160, 60, gray_D, BOX_LEN, BOX_LEN);
+            wait_for_timer();
+            if(stop_title == TRUE) break;
+            draw_img(200, 60, gray_L, BOX_LEN, BOX_LEN);
+            wait_for_timer();
+            if(stop_title == TRUE) break;
+            draw_img(240, 60, gray_E, BOX_LEN, BOX_LEN);
+            wait_for_timer();
+            if(stop_title == TRUE) break;
+            // Draw yellow letters
+            draw_img(40, 60, yellow_W, BOX_LEN, BOX_LEN);
+            wait_for_timer();
+            if(stop_title == TRUE) break;
+            draw_img(80, 60, yellow_O, BOX_LEN, BOX_LEN);
+            wait_for_timer();
+            if(stop_title == TRUE) break;
+            draw_img(120, 60, yellow_R, BOX_LEN, BOX_LEN);
+            wait_for_timer();
+            if(stop_title == TRUE) break;
+            draw_img(160, 60, yellow_D, BOX_LEN, BOX_LEN);
+            wait_for_timer();
+            if(stop_title == TRUE) break;
+            draw_img(200, 60, yellow_L, BOX_LEN, BOX_LEN);
+            wait_for_timer();
+            if(stop_title == TRUE) break;
+            draw_img(240, 60, yellow_E, BOX_LEN, BOX_LEN);
+            wait_for_timer();
+            if(stop_title == TRUE) break;
+            // Draw green letters
+            draw_img(40, 60, green_W, BOX_LEN, BOX_LEN);
+            wait_for_timer();
+            if(stop_title == TRUE) break;
+            draw_img(80, 60, green_O, BOX_LEN, BOX_LEN);
+            wait_for_timer();
+            if(stop_title == TRUE) break;
+            draw_img(120, 60, green_R, BOX_LEN, BOX_LEN);
+            wait_for_timer();
+            if(stop_title == TRUE) break;
+            draw_img(160, 60, green_D, BOX_LEN, BOX_LEN);
+            wait_for_timer();
+            if(stop_title == TRUE) break;
+            draw_img(200, 60, green_L, BOX_LEN, BOX_LEN);
+            wait_for_timer();
+            if(stop_title == TRUE) break;
+            draw_img(240, 60, green_E, BOX_LEN, BOX_LEN);
+            wait_for_timer();
+            if(stop_title == TRUE) break;
         }
 
-        // Intialize letter checking
-        int letter_status[NUM_LETTERS];
-        for(int current_letter = 0 ; current_letter < NUM_LETTERS; current_letter++) {
-            letter_status[current_letter] = WRONG_LETTER;
-        }
+        // Stop timer
+        *(TimerControl ) = 8;
+        // Reset timer timeout status
+        *(TimerStatus) = 0x2;
 
-        // Initial values of X and Y (0,0 on Wordle grid)
-        int curr_y = 17;
+        if(choose_mode == SINGLE_PLAYER_MODE) {
+            // Loop to restart single player game
+            while(1) {
 
-        // Which letter we are currently on
-        int current_letter = 0;
+                // Clear the screen
+                clear_screen();
+                // Draw the grid
+                draw_grid();
 
-        // Main game loop
-        while(1) {
+                int num_guesses = 0;
+                int num_times_letter_appears[26] = {0};
 
-            // Wait to receive a letter input from the keyboard
-            if(letter_received != 0x0) {
-
-                // Check for backspace
-                // If there is any letter on screen delete it
-                if(letter_received == 0x66 && letters[0] != 0x0) {
-                    int letter_to_delete = NUM_LETTERS - 1;
-                    while(letter_to_delete >= 0) {
-                        if(letters[letter_to_delete] != 0x0) {
-                            draw_box(WHITE, letter_x_pos[letter_to_delete], curr_y);
-                            draw_wordle_box(letter_x_pos[letter_to_delete], curr_y);
-                            letters[letter_to_delete] = 0x0;
-                            current_letter--;
-                            break;
-                        }
-                        letter_to_delete--;
-                    }
+                // Initialize all letters to zero
+                for(int current_letter = 0 ; current_letter < NUM_LETTERS; current_letter++) {
+                    letters[current_letter] = 0x0;
                 }
 
-                // If we are done and enter key is pressed check each letter
-                else if(letters[NUM_LETTERS - 1] != 0x0 && letter_received == 0x5A) {
-                    
-                    // Convert entered keyboard inputs into characters
-                    for(int curr_letter = 0; curr_letter < NUM_LETTERS; curr_letter++) {
-                        entered_string[curr_letter] = convert_to_char(letters[curr_letter]);
-                    }
-                    entered_string[NUM_LETTERS] = '\0';
+                // Initialize correct letters
+                char* correct_word = pick_random_word(wordle_words_easy);
 
-                    //Search for the string in the word bank. If not in word bank, continue
-                    if (legal_word(full_word_bank, 0, 12477, entered_string) == -1) {
-                        continue;
-                    }
-
-                    // Initialize number of correct letters found
-                    int num_letters_correct = 0;
-
-                    // Update number of guesses
-                    num_guesses++;
-
-                    // Update number of times each letter has been inputted
-                    int num_times_letter_inputted[26] = {0};
-                    // Copy the number of times each letter appears
-                    int num_times_letter_appears_temp[26] = {0};
-                    for(int current_letter = 0 ; current_letter < 26; current_letter++) {
-                        num_times_letter_appears_temp[current_letter] = num_times_letter_appears[current_letter];
-                    }
-
-                    // Check for correct letters first, needed for checking duplicate entries  
-                    for(int curr_letter = 0; curr_letter < NUM_LETTERS; curr_letter++) {
-                        int check_this_letter = letters[curr_letter];
-                        int num_in_alphabet = code_to_num(check_this_letter);
-                        for(int curr_letter_compare = 0; curr_letter_compare < NUM_LETTERS; curr_letter_compare++) {
-                            if(check_this_letter == correct_letters[curr_letter_compare] && curr_letter == curr_letter_compare) {
-                                num_times_letter_appears_temp[num_in_alphabet]--;
-                                letter_status[curr_letter] = CORRECT_LETTER_RIGHT_SPOT;
-                                break;
-                            }
-                        }
-                    }
-
-                    // Check if letter is correct but in the wrong spot     
-                    for(int curr_letter = 0; curr_letter < NUM_LETTERS; curr_letter++) {
-                        int check_this_letter = letters[curr_letter];
-                        int num_in_alphabet = code_to_num(check_this_letter);
-                        if(num_times_letter_appears_temp[num_in_alphabet] > 0 && letter_status[curr_letter] != CORRECT_LETTER_RIGHT_SPOT) {
-                            num_times_letter_inputted[num_in_alphabet]++;
-                            if(num_times_letter_inputted[num_in_alphabet] <= num_times_letter_appears_temp[num_in_alphabet]) { 
-                                letter_status[curr_letter] = CORRECT_LETTER_WRONG_SPOT;
-                            }
-                        }
-                    }
-
-                    // Now we have the letter status, draw boxes based on each letter's status 
-                    for(int curr_letter = 0; curr_letter < NUM_LETTERS; curr_letter++) {
-                        if(letter_status[curr_letter] == CORRECT_LETTER_RIGHT_SPOT) {
-                            draw_img(letter_x_pos[curr_letter], curr_y, match_img_array(letters[curr_letter], CORRECT_LETTER_RIGHT_SPOT), BOX_LEN, BOX_LEN);
-                            num_letters_correct++;
-                        }
-                        else if(letter_status[curr_letter] == CORRECT_LETTER_WRONG_SPOT) {
-                            draw_img(letter_x_pos[curr_letter], curr_y, match_img_array(letters[curr_letter], CORRECT_LETTER_WRONG_SPOT), BOX_LEN, BOX_LEN);
-                        }
-                        else draw_img(letter_x_pos[curr_letter], curr_y, match_img_array(letters[curr_letter], WRONG_LETTER), BOX_LEN, BOX_LEN);
-                        // Configure the timeout period
-                        *(TimerTimeoutL)=0xFFFF;
-                        *(TimerTimeoutH)=0x01FF; 
-                        *(TimerStatus) = 0x2;
-                        // Configure timer to start counting and to always continue
-                        *(TimerControl) = 6;
-                        wait_for_timer_no_interrupt();
-                        // Stop timer
-                        *(TimerControl) = 8;
-                    }
-
-                    // End the round if the correct word is found
-                    if(num_letters_correct == 5) {
-                        draw_img(250, 90, restart_message, 70, 70);
-                        draw_img(0, 90, restart_message, 70, 70);
-                        break;
-                    }
-
-                    // End the game if all guesses used
-                    if(num_guesses == 6) {
-                        break;
-                    }
-                    // Reset letters
-                    for(int curr_letter = 0 ; curr_letter < NUM_LETTERS; curr_letter++) {
-                        letters[curr_letter] = 0x0;
-                    }
-                    // Reset letter status
-                    for(int current_letter = 0 ; current_letter < NUM_LETTERS; current_letter++) {
-                        letter_status[current_letter] = WRONG_LETTER;
-                    }
-                    // Draw on next row
-                    curr_y += (BOX_LEN + 5);
-                    current_letter = 0;
+                int i = 0;
+                while (*correct_word != '\0') {
+                    correct_letters[i] = convert_to_code(*correct_word);
+                    printf("Word is %c\n", *correct_word);
+                    i += 1;
+                    correct_word += 1;
                 }
 
-                // Change the letter if the input is a letter and we havent reached the end
-                else if(check_letter_valid(letter_received) == FALSE) continue;
-
-                else if(letters[NUM_LETTERS - 1] == 0x0){
-                    letters[current_letter] = letter_received;
-                    draw_img(letter_x_pos[current_letter], curr_y, match_img_array(letters[current_letter], UNCHECKED_LETTER), BOX_LEN, BOX_LEN);
-                    // Iterate current letter
-                    current_letter++;
+                // Count number of times letters appear in the word
+                for(int current_letter = 0 ; current_letter < NUM_LETTERS; current_letter++) {
+                    num_times_letter_appears[code_to_num(correct_letters[current_letter])]++;
                 }
 
-                // Set letter received back to 0
+                // Set letter recieved to 0
                 letter_received = 0x0;
 
+                // Initialize X positions for each letter
+                int letter_x_pos[NUM_LETTERS];
+                int initial_x_pos = 75;
+                for(int current_letter = 0; current_letter < NUM_LETTERS; current_letter++) {
+                    letter_x_pos[current_letter] = initial_x_pos;
+                    initial_x_pos += BOX_LEN + 5;
+                }
+
+                // Intialize letter checking
+                int letter_status[NUM_LETTERS];
+                for(int current_letter = 0 ; current_letter < NUM_LETTERS; current_letter++) {
+                    letter_status[current_letter] = WRONG_LETTER;
+                }
+
+                // Initial values of X and Y (0,0 on Wordle grid)
+                int curr_y = 17;
+
+                // Which letter we are currently on
+                int current_letter = 0;
+
+                // Single player game loop
+                while(1) {
+
+                    // Wait to receive a letter input from the keyboard
+                    if(letter_received != 0x0) {
+
+                        // Check for backspace
+                        // If there is any letter on screen delete it
+                        if(letter_received == 0x66 && letters[0] != 0x0) {
+                            int letter_to_delete = NUM_LETTERS - 1;
+                            while(letter_to_delete >= 0) {
+                                if(letters[letter_to_delete] != 0x0) {
+                                    draw_box(WHITE, letter_x_pos[letter_to_delete], curr_y);
+                                    draw_wordle_box(letter_x_pos[letter_to_delete], curr_y);
+                                    letters[letter_to_delete] = 0x0;
+                                    current_letter--;
+                                    break;
+                                }
+                                letter_to_delete--;
+                            }
+                        }
+
+                        // If we are done and enter key is pressed check each letter
+                        else if(letters[NUM_LETTERS - 1] != 0x0 && letter_received == 0x5A) {
+                            
+                            // Convert entered keyboard inputs into characters
+                            for(int curr_letter = 0; curr_letter < NUM_LETTERS; curr_letter++) {
+                                entered_string[curr_letter] = convert_to_char(letters[curr_letter]);
+                            }
+                            entered_string[NUM_LETTERS] = '\0';
+
+                            //Search for the string in the word bank. If not in word bank, continue
+                            if (legal_word(full_word_bank, 0, 12477, entered_string) == -1) {
+                                continue;
+                            }
+
+                            // Initialize number of correct letters found
+                            int num_letters_correct = 0;
+
+                            // Update number of guesses
+                            num_guesses++;
+
+                            // Update number of times each letter has been inputted
+                            int num_times_letter_inputted[26] = {0};
+                            // Copy the number of times each letter appears
+                            int num_times_letter_appears_temp[26] = {0};
+                            for(int current_letter = 0 ; current_letter < 26; current_letter++) {
+                                num_times_letter_appears_temp[current_letter] = num_times_letter_appears[current_letter];
+                            }
+
+                            // Check for correct letters first, needed for checking duplicate entries  
+                            for(int curr_letter = 0; curr_letter < NUM_LETTERS; curr_letter++) {
+                                int check_this_letter = letters[curr_letter];
+                                int num_in_alphabet = code_to_num(check_this_letter);
+                                for(int curr_letter_compare = 0; curr_letter_compare < NUM_LETTERS; curr_letter_compare++) {
+                                    if(check_this_letter == correct_letters[curr_letter_compare] && curr_letter == curr_letter_compare) {
+                                        num_times_letter_appears_temp[num_in_alphabet]--;
+                                        letter_status[curr_letter] = CORRECT_LETTER_RIGHT_SPOT;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            // Check if letter is correct but in the wrong spot     
+                            for(int curr_letter = 0; curr_letter < NUM_LETTERS; curr_letter++) {
+                                int check_this_letter = letters[curr_letter];
+                                int num_in_alphabet = code_to_num(check_this_letter);
+                                if(num_times_letter_appears_temp[num_in_alphabet] > 0 && letter_status[curr_letter] != CORRECT_LETTER_RIGHT_SPOT) {
+                                    num_times_letter_inputted[num_in_alphabet]++;
+                                    if(num_times_letter_inputted[num_in_alphabet] <= num_times_letter_appears_temp[num_in_alphabet]) { 
+                                        letter_status[curr_letter] = CORRECT_LETTER_WRONG_SPOT;
+                                    }
+                                }
+                            }
+
+                            // Now we have the letter status, draw boxes based on each letter's status 
+                            for(int curr_letter = 0; curr_letter < NUM_LETTERS; curr_letter++) {
+                                if(letter_status[curr_letter] == CORRECT_LETTER_RIGHT_SPOT) {
+                                    draw_img(letter_x_pos[curr_letter], curr_y, match_img_array(letters[curr_letter], CORRECT_LETTER_RIGHT_SPOT), BOX_LEN, BOX_LEN);
+                                    num_letters_correct++;
+                                }
+                                else if(letter_status[curr_letter] == CORRECT_LETTER_WRONG_SPOT) {
+                                    draw_img(letter_x_pos[curr_letter], curr_y, match_img_array(letters[curr_letter], CORRECT_LETTER_WRONG_SPOT), BOX_LEN, BOX_LEN);
+                                }
+                                else draw_img(letter_x_pos[curr_letter], curr_y, match_img_array(letters[curr_letter], WRONG_LETTER), BOX_LEN, BOX_LEN);
+                                // Configure the timeout period
+                                *(TimerTimeoutL)=0xFFFF;
+                                *(TimerTimeoutH)=0x00FF;
+                                *(TimerStatus) = 0x2;
+                                // Configure timer to start counting and to always continue
+                                *(TimerControl) = 6;
+                                wait_for_timer_no_interrupt();
+                                // Stop timer
+                                *(TimerControl) = 8;
+                            }
+
+                            // End the round if the correct word is found
+                            if(num_letters_correct == 5) {
+                                break;
+                            }
+
+                            // End the game if all guesses used
+                            if(num_guesses == 6) {
+                                break;
+                            }
+                            // Reset letters
+                            for(int curr_letter = 0 ; curr_letter < NUM_LETTERS; curr_letter++) {
+                                letters[curr_letter] = 0x0;
+                            }
+                            // Reset letter status
+                            for(int current_letter = 0 ; current_letter < NUM_LETTERS; current_letter++) {
+                                letter_status[current_letter] = WRONG_LETTER;
+                            }
+                            // Draw on next row
+                            curr_y += (BOX_LEN + 5);
+                            current_letter = 0;
+                        }
+
+                        // Change the letter if the input is a letter and we havent reached the end
+                        else if(check_letter_valid(letter_received) == FALSE) continue;
+
+                        else if(letters[NUM_LETTERS - 1] == 0x0){
+                            letters[current_letter] = letter_received;
+                            draw_img(letter_x_pos[current_letter], curr_y, match_img_array(letters[current_letter], UNCHECKED_LETTER), BOX_LEN, BOX_LEN);
+                            // Iterate current letter
+                            current_letter++;
+                        }
+
+                        // Set letter received back to 0
+                        letter_received = 0x0;
+
+                    }
+                }
+
+                // Game is over, show option to restart game
+
+                draw_img(250, 90, restart_message, 70, 70);
+                draw_img(0, 90, restart_message, 70, 70);
+
+                // If user presses any key restart the single player game
+                letter_received = 0x0;
+                while(letter_received == 0x0);
+                // If the player presses tab key, go back to title screen
+                if(letter_received == 0x0D) break;
             }
         }
+        
+        else if(choose_mode == MULTI_PLAYER_MODE) {
+            // 1v1 loop
+            int player_1_num_guesses = 0;
+            int player_2_num_guesses = 0;
+            int player_turn = PLAYER_1_TURN;
+            while(1) {
 
-        // Game is over, show option to restart game
+                clear_screen();
 
-        draw_img(250, 90, restart_message, 70, 70);
-        draw_img(0, 90, restart_message, 70, 70);
+                letter_received = 0x0;
 
-        // If user presses any key restart the game
-        letter_received = 0x0;
-        printf("\n\n");
-        while(letter_received == 0x0);
+                // First get the word from player
+                int chosen_word[NUM_LETTERS] = {0x0};
+                int current_letter = 0;
+
+                while(1) {
+
+                    if(letter_received != 0x0) {
+
+                        // Check for backspace
+                        // If there is any letter on screen delete it
+                        if(letter_received == 0x66 && chosen_word[0] != 0x0) {
+                            int letter_to_delete = NUM_LETTERS - 1;
+                            while(letter_to_delete >= 0) {
+                                if(chosen_word[letter_to_delete] != 0x0) {
+                                    chosen_word[letter_to_delete] = 0x0;
+                                    current_letter--;
+                                    break;
+                                }
+                                letter_to_delete--;
+                            }
+                        }
+
+                        // If we are done and enter key is pressed check each letter
+                        else if(chosen_word[NUM_LETTERS - 1] != 0x0 && letter_received == 0x5A) {
+                            
+                            // Convert entered keyboard inputs into characters
+                            for(int curr_letter = 0; curr_letter < NUM_LETTERS; curr_letter++) {
+                                entered_string[curr_letter] = convert_to_char(chosen_word[curr_letter]);
+                            }
+                            entered_string[NUM_LETTERS] = '\0';
+
+                            //Search for the string in the word bank. If not in word bank, continue
+                            if (legal_word(full_word_bank, 0, 12477, entered_string) == -1) {
+                                continue;
+                            }
+
+                            // Word is valid, continue game
+                            else break;
+                        }
+
+                        // Check if input is a letter
+                        else if(check_letter_valid(letter_received) == FALSE) continue;
+
+                        // Fill player's correct word
+                        else if(chosen_word[NUM_LETTERS - 1] == 0x0){
+                            chosen_word[current_letter] = letter_received;
+                            // Iterate current letter
+                            current_letter++;
+                        }
+
+                        // Set letter received back to 0
+                        letter_received = 0x0;
+                    }
+                }
+
+                // Other player plays game
+
+                current_letter = 0;
+                letter_received = 0x0;
+                int player_guessed_letters[NUM_LETTERS] = {0x0};
+                // Clear the screen
+                clear_screen();
+                // Draw the grid
+                draw_grid();
+
+                int num_times_letter_appears[26] = {0};
+
+                // Count number of times letters appear in the word
+                for(int current_letter = 0 ; current_letter < NUM_LETTERS; current_letter++) {
+                    num_times_letter_appears[code_to_num(chosen_word[current_letter])]++;
+                }
+
+                // Initialize X positions for each letter
+                int letter_x_pos[NUM_LETTERS];
+                int initial_x_pos = 75;
+                for(int current_letter = 0; current_letter < NUM_LETTERS; current_letter++) {
+                    letter_x_pos[current_letter] = initial_x_pos;
+                    initial_x_pos += BOX_LEN + 5;
+                }
+
+                // Intialize letter checking
+                int letter_status[NUM_LETTERS];
+                for(int current_letter = 0 ; current_letter < NUM_LETTERS; current_letter++) {
+                    letter_status[current_letter] = WRONG_LETTER;
+                }
+
+                // Initial values of X and Y (0,0 on Wordle grid)
+                int curr_y = 17;
+
+                // Now play main wordle game, keep track of number of guesses used
+                while(1) {
+
+                    // Wait to receive a letter input from the keyboard
+                    if(letter_received != 0x0) {
+
+                        // Check for backspace
+                        // If there is any letter on screen delete it
+                        if(letter_received == 0x66 && player_guessed_letters[0] != 0x0) {
+                            int letter_to_delete = NUM_LETTERS - 1;
+                            while(letter_to_delete >= 0) {
+                                if(player_guessed_letters[letter_to_delete] != 0x0) {
+                                    draw_box(WHITE, letter_x_pos[letter_to_delete], curr_y);
+                                    draw_wordle_box(letter_x_pos[letter_to_delete], curr_y);
+                                    player_guessed_letters[letter_to_delete] = 0x0;
+                                    current_letter--;
+                                    break;
+                                }
+                                letter_to_delete--;
+                            }
+                        }
+
+                        // If we are done and enter key is pressed check each letter
+                        else if(player_guessed_letters[NUM_LETTERS - 1] != 0x0 && letter_received == 0x5A) {
+                            
+                            // Convert entered keyboard inputs into characters
+                            for(int curr_letter = 0; curr_letter < NUM_LETTERS; curr_letter++) {
+                                entered_string[curr_letter] = convert_to_char(player_guessed_letters[curr_letter]);
+                            }
+                            entered_string[NUM_LETTERS] = '\0';
+
+                            //Search for the string in the word bank. If not in word bank, continue
+                            if (legal_word(full_word_bank, 0, 12477, entered_string) == -1) {
+                                continue;
+                            }
+
+                            // Initialize number of correct letters found
+                            int num_letters_correct = 0;
+
+                            // Update number of guesses
+                            if(player_turn == PLAYER_1_TURN) player_1_num_guesses++;
+                            else if(player_turn == PLAYER_2_TURN) player_2_num_guesses++;
+
+                            // Update number of times each letter has been inputted
+                            int num_times_letter_inputted[26] = {0};
+                            // Copy the number of times each letter appears
+                            int num_times_letter_appears_temp[26] = {0};
+                            for(int current_letter = 0 ; current_letter < 26; current_letter++) {
+                                num_times_letter_appears_temp[current_letter] = num_times_letter_appears[current_letter];
+                            }
+
+                            // Check for correct letters first, needed for checking duplicate entries  
+                            for(int curr_letter = 0; curr_letter < NUM_LETTERS; curr_letter++) {
+                                int check_this_letter = player_guessed_letters[curr_letter];
+                                int num_in_alphabet = code_to_num(check_this_letter);
+                                for(int curr_letter_compare = 0; curr_letter_compare < NUM_LETTERS; curr_letter_compare++) {
+                                    if(check_this_letter == chosen_word[curr_letter_compare] && curr_letter == curr_letter_compare) {
+                                        num_times_letter_appears_temp[num_in_alphabet]--;
+                                        letter_status[curr_letter] = CORRECT_LETTER_RIGHT_SPOT;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            // Check if letter is correct but in the wrong spot     
+                            for(int curr_letter = 0; curr_letter < NUM_LETTERS; curr_letter++) {
+                                int check_this_letter = player_guessed_letters[curr_letter];
+                                int num_in_alphabet = code_to_num(check_this_letter);
+                                if(num_times_letter_appears_temp[num_in_alphabet] > 0 && letter_status[curr_letter] != CORRECT_LETTER_RIGHT_SPOT) {
+                                    num_times_letter_inputted[num_in_alphabet]++;
+                                    if(num_times_letter_inputted[num_in_alphabet] <= num_times_letter_appears_temp[num_in_alphabet]) { 
+                                        letter_status[curr_letter] = CORRECT_LETTER_WRONG_SPOT;
+                                    }
+                                }
+                            }
+
+                            // Now we have the letter status, draw boxes based on each letter's status 
+                            for(int curr_letter = 0; curr_letter < NUM_LETTERS; curr_letter++) {
+                                if(letter_status[curr_letter] == CORRECT_LETTER_RIGHT_SPOT) {
+                                    draw_img(letter_x_pos[curr_letter], curr_y, match_img_array(player_guessed_letters[curr_letter], CORRECT_LETTER_RIGHT_SPOT), BOX_LEN, BOX_LEN);
+                                    num_letters_correct++;
+                                }
+                                else if(letter_status[curr_letter] == CORRECT_LETTER_WRONG_SPOT) {
+                                    draw_img(letter_x_pos[curr_letter], curr_y, match_img_array(player_guessed_letters[curr_letter], CORRECT_LETTER_WRONG_SPOT), BOX_LEN, BOX_LEN);
+                                }
+                                else draw_img(letter_x_pos[curr_letter], curr_y, match_img_array(player_guessed_letters[curr_letter], WRONG_LETTER), BOX_LEN, BOX_LEN);
+                                // Configure the timeout period
+                                *(TimerTimeoutL)=0xFFFF;
+                                *(TimerTimeoutH)=0x00FF;
+                                *(TimerStatus) = 0x2;
+                                // Configure timer to start counting and to always continue
+                                *(TimerControl) = 6;
+                                wait_for_timer_no_interrupt();
+                                // Stop timer
+                                *(TimerControl) = 8;
+                            }
+
+                            // End the round if the correct word is found
+                            if(num_letters_correct == 5) {
+                                break;
+                            }
+
+                            // End the game if all guesses used
+                            if(player_turn == PLAYER_1_TURN) {
+                                if(player_1_num_guesses == 6) break;
+                            }
+                            else if(player_turn == PLAYER_2_TURN) {
+                                if(player_2_num_guesses == 6) break;
+                            }
+                            // Reset letters
+                            for(int curr_letter = 0 ; curr_letter < NUM_LETTERS; curr_letter++) {
+                                player_guessed_letters[curr_letter] = 0x0;
+                            }
+                            // Reset letter status
+                            for(int current_letter = 0 ; current_letter < NUM_LETTERS; current_letter++) {
+                                letter_status[current_letter] = WRONG_LETTER;
+                            }
+                            // Draw on next row
+                            curr_y += (BOX_LEN + 5);
+                            current_letter = 0;
+                        }
+
+                        // Change the letter if the input is a letter and we havent reached the end
+                        else if(check_letter_valid(letter_received) == FALSE) continue;
+
+                        else if(player_guessed_letters[NUM_LETTERS - 1] == 0x0){
+                            player_guessed_letters[current_letter] = letter_received;
+                            draw_img(letter_x_pos[current_letter], curr_y, match_img_array(player_guessed_letters[current_letter], UNCHECKED_LETTER), BOX_LEN, BOX_LEN);
+                            // Iterate current letter
+                            current_letter++;
+                        }
+
+                        // Set letter received back to 0
+                        letter_received = 0x0;
+
+                    }
+                }
+
+                // Now restart but with player roles swapped
+                if(player_turn == PLAYER_1_TURN) {
+                    player_turn = PLAYER_2_TURN;
+                    // Wait for keyboard input confirmation to continue
+                    letter_received = 0x0;
+                    while(letter_received == 0x0);
+                    letter_received = 0x0;
+                    continue;
+                }
+
+                // If player 2 turn is over then game is done
+                // Check who won
+                if(player_1_num_guesses == player_2_num_guesses) draw_box(BLACK, RESOLUTION_X/2, RESOLUTION_Y/2);
+                else if(player_1_num_guesses < player_2_num_guesses) draw_box(GREEN, RESOLUTION_X/2, RESOLUTION_Y/2);
+                else draw_box(RED, RESOLUTION_X/2, RESOLUTION_Y/2);
+
+                // Wait for user input to restart game or go back to title screen
+                draw_img(250, 90, restart_message, 70, 70);
+                draw_img(0, 90, restart_message, 70, 70);
+
+                // If user presses any key restart the single player game
+                letter_received = 0x0;
+                while(letter_received == 0x0);
+                // If the player presses tab key, go back to title screen
+                if(letter_received == 0x0D) break;
+                
+            }
+        }
 
     }
 
@@ -8998,7 +9281,13 @@ char convert_to_char(int code) {
 void wait_for_timer(void) {
     stop_title = FALSE;
     while(*(TimerStatus) == 2) {
-        if(letter_received != 0x0) {
+        if(letter_received == 0x16) {
+            choose_mode = SINGLE_PLAYER_MODE;
+            stop_title = TRUE;
+            return;
+        }
+        else if(letter_received == 0x1E) {
+            choose_mode = MULTI_PLAYER_MODE;
             stop_title = TRUE;
             return;
         }
