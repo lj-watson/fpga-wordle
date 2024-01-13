@@ -1,10 +1,9 @@
-# fpga-wordle
-This program runs a Wordle minigame on the DE1-SoC FPGA. It is written in C with some inline ARM Assembly. 
+# ece243-fpga-wordle
+This program runs Wordle on a DE1-SoC FPGA. It is written in C with some inline ARM Assembly (not optimised). 
 
-** SIMULATION INSTRUCTIONS **
+** WEB BROWSER SIMULATION **
 
-To try it on a web browser, go to https://cpulator.01xz.net and select ARMv7 DE1-SoC to simulate the system.
-First change the language in the editor to C.
-Go to File -> Open and choose the .c file. The program will appear on the simulated VGA Pixel Buffer.
-To provide user input, type in the "PS/2 keyboard or mouse" device interface. Only the interface with IRQ 79 will work.
-(This is an arbitrary choice as the DE1-SoC has two PS/2 inputs with different IRQ codes.)
+Go to https://cpulator.01xz.net and select ARMv7 DE1-SoC to simulate the system.
+Change the language in the editor to C.
+Go to File -> Open and choose "wordle.c". Press "Compile and Load" then "Continue". The program will appear on the simulated VGA Pixel Buffer.
+To provide input, type in the "PS/2 keyboard or mouse" interface. Only the interface with IRQ 79 will work. (The DE1-SoC has two PS/2 inputs with different IRQ codes.)
