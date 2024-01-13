@@ -1,5 +1,5 @@
 # ece243-fpga-wordle
-This program runs Wordle on a DE1-SoC FPGA. It is written in C with some inline ARM Assembly (not optimised). 
+This program runs Wordle on a DE1-SoC FPGA.
 
 To simulate on a web browser:
 
