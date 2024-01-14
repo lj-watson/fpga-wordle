@@ -4,7 +4,7 @@
 
 This program runs Wordle on a DE1-SoC FPGA.<br><br>
 
-### Web Browser Simulation <br><br>
+### Web Browser Simulation
 
 1. Go to https://cpulator.01xz.net and select ARMv7 DE1-SoC. <br>
 2. Change the language in the editor to C.<br>
