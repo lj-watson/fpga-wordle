@@ -2,7 +2,7 @@
 
 This program runs Wordle on a DE1-SoC FPGA.<br><br>
 
-![Start screen GIF]([https://github.com/lj-watson/fpga-wordle/blob/main/images/startscreen.gif])
+![Start screen GIF](https://github.com/lj-watson/fpga-wordle/blob/main/images/startscreen.gif)
 
 ### Web Browser Simulation
 
