@@ -1,8 +1,8 @@
 # FPGA Wordle
 
-### Description
-
 This program runs Wordle on a DE1-SoC FPGA.<br><br>
+
+![Alt Text](https://media.giphy.com/media/vFKqnCdLPNOKc/giphy.gif)
 
 ### Web Browser Simulation
 
